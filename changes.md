@@ -28,4 +28,4 @@ from book free demo button it should go to this link: https://calendly.com/openb
 ## additional requirements
 - changing from 25 question to 10 question
 - after changing to 10 questions we will show the full result after the email is provided then redirect to the result page.
-- 
+- change all the lovable stuffs to open box stuffs
