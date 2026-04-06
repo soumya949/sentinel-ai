@@ -44,6 +44,13 @@ const AuditQuiz = ({ questions, title, subtitle, startIndex, totalQuestions, onC
           animate={{ opacity: 1, y: 0 }}
           className="glass-card rounded-2xl p-8 shadow-2xl"
         >
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <a href="https://www.openbox.ai" target="_blank" rel="noopener noreferrer">
+              <img src="/openbox-logo.svg" alt="OpenBox" className="h-8" />
+            </a>
+          </div>
+
           {/* Header */}
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold text-foreground mb-2">{title}</h2>
