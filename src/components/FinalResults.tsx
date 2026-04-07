@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import {
-  AlertTriangle, CheckCircle2, XCircle, Shield,
-  ArrowRight, TrendingUp, BookOpen, AlertCircle, Scale
+  AlertTriangle, XCircle, Shield,
+  ArrowRight, TrendingUp
 } from "lucide-react";
 import {
   Answer, calculateScore, getRiskLevel, getCategoryScores,
@@ -23,14 +23,6 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
   const categories = getCategoryScores(answers, questions);
   const improvedScore = Math.min(100, score + 23);
 
-  const criticalIssues = [
-    categories.find((c) => c.name === "Monitoring" && c.score < 60) && "No real-time monitoring detected",
-    categories.find((c) => c.name === "Output Risk" && c.score < 70) && "No output verification system",
-    categories.find((c) => c.name === "Control Risk" && c.score < 60) && "No action approval system",
-    categories.find((c) => c.name === "Governance" && c.score < 70) && "Governance framework incomplete",
-    categories.find((c) => c.name === "Input Risk" && c.score < 60) && "Input validation gaps",
-  ].filter(Boolean);
-
   const colorMap: Record<string, string> = {
     "Input Risk": "primary",
     "Output Risk": "warning",
@@ -39,18 +31,123 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
     "Governance": "secondary",
   };
 
+  const monitoringScore = categories.find((c) => c.name === "Monitoring")?.score ?? score;
+  const governanceScore = categories.find((c) => c.name === "Governance")?.score ?? score;
+
+  const answeredValues = Object.values(answers);
+  const totalCount = answeredValues.length;
+  const coverageCurrent = answeredValues.length === 0
+    ? 0
+    : Math.round(
+        (answeredValues.reduce((acc, a) => acc + (a === "yes" ? 1 : a === "partially" ? 0.5 : 0), 0) /
+          answeredValues.length) *
+          100,
+      );
+  const coverageWithOpenBox = Math.min(100, Math.round(coverageCurrent + (100 - coverageCurrent) * 0.6));
+  const coverageDelta = Math.max(0, coverageWithOpenBox - coverageCurrent);
+
+  const projectScore = (current: number) => {
+    const gap = 100 - current;
+    const boost = Math.min(35, Math.max(12, Math.round(gap * 0.5)));
+    return Math.min(100, current + boost);
+  };
+
+  const getCategoryScore = (name: string) => categories.find((c) => c.name === name)?.score ?? score;
+  const kpis = [
+    { label: "Input hardening", category: "Input Risk" },
+    { label: "Output reliability", category: "Output Risk" },
+    { label: "Action control", category: "Control Risk" },
+  ].map((k) => {
+    const current = getCategoryScore(k.category);
+    const projected = projectScore(current);
+    const color = colorMap[k.category] ?? "primary";
+    return { ...k, current, projected, color };
+  });
+
+  const severity = (100 - score) + (100 - monitoringScore) * 0.7 + (100 - governanceScore) * 0.5;
+  const incidentsCurrent = Math.max(1, Math.round(severity / 30));
+  const incidentsWithOpenBox = Math.max(0, Math.round(incidentsCurrent * 0.35));
+  const incidentReductionPct = incidentsCurrent === 0
+    ? 0
+    : Math.round(((incidentsCurrent - incidentsWithOpenBox) / incidentsCurrent) * 100);
+
+  const buildSparkPoints = (values: number[], width: number, height: number) => {
+    const max = Math.max(...values, 1);
+    return values
+      .map((v, i) => {
+        const x = values.length === 1 ? 0 : (i / (values.length - 1)) * width;
+        const y = height - (v / max) * height;
+        return `${x},${y}`;
+      })
+      .join(" ");
+  };
+
+  const currentSeries = [
+    incidentsCurrent + 1,
+    incidentsCurrent + 2,
+    incidentsCurrent + 1,
+    incidentsCurrent + 2,
+    incidentsCurrent + 1,
+    incidentsCurrent,
+  ];
+  const openBoxSeries = [
+    incidentsWithOpenBox + 1,
+    incidentsWithOpenBox + 1,
+    incidentsWithOpenBox,
+    incidentsWithOpenBox,
+    incidentsWithOpenBox,
+    incidentsWithOpenBox,
+  ];
+
+  const gapCategories = [...categories]
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 3)
+    .map((c) => {
+      const gap = 100 - c.score;
+      const boost = Math.min(35, Math.max(10, Math.round(gap * 0.45)));
+      const projected = Math.min(100, c.score + boost);
+      return { ...c, projected };
+    });
+
+  const riskDrivers = [...categories]
+    .sort((a, b) => a.score - b.score)
+    .slice(0, 2);
+
+  const criticalIssues = [
+    categories.find((c) => c.name === "Monitoring" && c.score < 60) && "No real-time monitoring detected",
+    categories.find((c) => c.name === "Output Risk" && c.score < 70) && "No output verification system",
+    categories.find((c) => c.name === "Control Risk" && c.score < 60) && "No action approval system",
+    categories.find((c) => c.name === "Governance" && c.score < 70) && "Governance framework incomplete",
+    categories.find((c) => c.name === "Input Risk" && c.score < 60) && "Input validation gaps",
+  ].filter(Boolean);
+
   return (
-    <section className="py-20 gradient-hero min-h-screen">
+    <section className="py-20 bg-background">
       <div className="container mx-auto px-6 max-w-4xl">
+        {isBasicOnly && (
+          <div className="mb-12">
+            <p className="font-semibold text-primary mb-2">AI Safety & Governance</p>
+            <h1 className="text-4xl sm:text-5xl font-bold text-foreground">
+              Audit Report
+            </h1>
+            <p className="text-muted-foreground mt-3 max-w-2xl">
+              This summary is based on your responses. Explore where OpenBox can improve safety, visibility, and control.
+            </p>
+          </div>
+        )}
+
         {/* Score */}
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-2xl p-10 shadow-2xl text-center mb-8"
+          className="bg-card border border-border rounded-2xl p-10 shadow-lg text-center mb-8"
         >
-          <h2 className="text-3xl font-bold text-foreground mb-8">
-            Your AI Safety Score
-          </h2>
+          <div className="mb-8">
+            <p className="font-semibold text-primary mb-2">Risk Assessment</p>
+            <h2 className="text-3xl font-bold text-foreground">
+              Your AI Safety Score
+            </h2>
+          </div>
           <div className="relative w-48 h-48 mx-auto mb-6">
             <svg className="w-48 h-48 -rotate-90" viewBox="0 0 120 120">
               <circle cx="60" cy="60" r="50" fill="none" stroke="hsl(var(--border))" strokeWidth="10" />
@@ -112,7 +209,7 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 + i * 0.1 }}
-                className="glass-card rounded-2xl p-6"
+                className="bg-card border border-border rounded-2xl p-6 shadow-lg"
               >
                 <h4 className="font-semibold text-foreground mb-3">{cat.name}</h4>
                 <div className="flex items-end gap-2 mb-2">
@@ -138,7 +235,7 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.5 }}
-            className="glass-card rounded-2xl p-8 mb-8"
+            className="bg-card border border-border rounded-2xl p-8 mb-8"
           >
             <h3 className="text-xl font-bold text-foreground mb-4 flex items-center gap-2">
               <XCircle className="w-6 h-6 text-risk" />
@@ -160,24 +257,203 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.7 }}
-          className="glass-card rounded-2xl p-8 mb-8 border-2 border-primary/20"
+          className="bg-card border border-border rounded-2xl p-8 mb-8"
         >
           <div className="flex items-center gap-3 mb-4">
             <TrendingUp className="w-6 h-6 text-primary" />
             <h3 className="text-xl font-bold text-foreground">Improvement Simulation</h3>
           </div>
+          {isBasicOnly && (
+            <div className="grid gap-4 sm:grid-cols-3 items-stretch mb-6">
+              <div className="rounded-xl border border-border bg-background p-4 text-left h-full min-h-[320px] flex flex-col">
+                <p className="text-xs font-medium text-muted-foreground mb-3">Biggest gaps</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Where OpenBox can raise safety coverage fastest.
+                </p>
+                <div className="flex items-center gap-3 mb-4 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-block w-3 h-1.5 rounded-full" style={{ backgroundColor: "hsl(var(--muted-foreground))" }} />
+                    Current
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-block w-3 h-1.5 rounded-full" style={{ backgroundColor: "hsl(var(--primary))" }} />
+                    With OpenBox
+                  </span>
+                </div>
+                <div className="flex-1 flex flex-col justify-between gap-4">
+                  {gapCategories.map((c) => {
+                    const currentWidth = `${Math.max(3, c.score)}%`;
+                    const projectedWidth = `${Math.max(3, c.projected)}%`;
+                    const barColor = colorMap[c.name] ?? "primary";
+                    return (
+                      <div key={c.name}>
+                        <div className="flex items-center justify-between gap-3 mb-1">
+                          <span className="text-xs font-medium text-foreground">{c.name}</span>
+                          <span className="text-xs text-muted-foreground">{c.score} → {c.projected}</span>
+                        </div>
+                        <div className="h-[10px] rounded-full bg-muted overflow-hidden">
+                          <div className="h-full bg-muted-foreground/30" style={{ width: currentWidth }} />
+                        </div>
+                        <div className="h-[10px] rounded-full bg-muted overflow-hidden mt-1">
+                          <div
+                            className="h-full"
+                            style={{ width: projectedWidth, backgroundColor: `hsl(var(--${barColor}))` }}
+                          />
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-border bg-background p-4 text-left h-full min-h-[320px] flex flex-col">
+                <p className="text-xs font-medium text-muted-foreground mb-3">Risk events / month</p>
+                <p className="text-xs text-muted-foreground mb-3">
+                  Based on your audit signals (risk score + monitoring & governance gaps).
+                </p>
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-xs text-muted-foreground">Current</p>
+                    <p className="text-lg font-semibold text-foreground">{incidentsCurrent}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-xs text-muted-foreground">With OpenBox</p>
+                    <p className="text-lg font-semibold text-success">{incidentsWithOpenBox}</p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-3 mb-3">
+                  <div className="text-xs text-muted-foreground">
+                    Estimated reduction
+                  </div>
+                  <div className="text-xs font-semibold" style={{ color: "hsl(var(--success))" }}>
+                    {incidentReductionPct}%
+                  </div>
+                </div>
+                <div className="h-2 rounded-full bg-muted overflow-hidden mb-3 flex">
+                  <div
+                    className="h-full"
+                    style={{ width: `${Math.max(2, 100 - incidentReductionPct)}%`, backgroundColor: "hsl(var(--muted-foreground))" }}
+                  />
+                  <div
+                    className="h-full"
+                    style={{ width: `${Math.max(2, incidentReductionPct)}%`, backgroundColor: "hsl(var(--success))" }}
+                  />
+                </div>
+                <svg viewBox="0 0 120 36" className="w-full h-14 flex-1">
+                  <polyline
+                    fill="none"
+                    stroke="hsl(var(--muted-foreground))"
+                    strokeWidth="2"
+                    points={buildSparkPoints(currentSeries, 120, 36)}
+                  />
+                  <polyline
+                    fill="none"
+                    stroke="hsl(var(--success))"
+                    strokeWidth="2"
+                    points={buildSparkPoints(openBoxSeries, 120, 36)}
+                  />
+                </svg>
+                <div className="mt-2 flex items-center justify-between gap-3 text-[11px] text-muted-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "hsl(var(--muted-foreground))" }} />
+                    Current
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <span className="inline-block w-2 h-2 rounded-full" style={{ backgroundColor: "hsl(var(--success))" }} />
+                    With OpenBox
+                  </span>
+                </div>
+                {riskDrivers.length > 0 && (
+                  <div className="mt-3 flex flex-wrap gap-2">
+                    {riskDrivers.map((d) => (
+                      <span
+                        key={d.name}
+                        className="text-[11px] px-2 py-1 rounded-full border border-border bg-muted/40 text-muted-foreground"
+                      >
+                        Driver: {d.name}
+                      </span>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border border-border bg-background p-4 text-left h-full min-h-[320px] flex flex-col">
+                <p className="text-xs font-medium text-muted-foreground mb-3">Readiness lift</p>
+                <p className="text-xs text-muted-foreground mb-4">
+                  Percentage-based snapshot derived from your answers.
+                </p>
+
+                <div className="rounded-lg border border-border bg-background px-3 py-3 mb-4">
+                  <div className="flex items-end justify-between gap-4">
+                    <div>
+                      <p className="text-[11px] text-muted-foreground">Overall</p>
+                      <p className="text-2xl font-semibold text-foreground">{coverageCurrent}%</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[11px] text-muted-foreground">With OpenBox</p>
+                      <p className="text-2xl font-semibold" style={{ color: "hsl(var(--success))" }}>
+                        {coverageWithOpenBox}%
+                      </p>
+                    </div>
+                  </div>
+                  <div className="mt-3 h-2 rounded-full overflow-hidden bg-muted flex">
+                    <div
+                      className="h-full"
+                      style={{ width: `${Math.max(2, coverageCurrent)}%`, backgroundColor: "hsl(var(--muted-foreground))" }}
+                    />
+                    <div
+                      className="h-full"
+                      style={{ width: `${Math.max(2, coverageDelta)}%`, backgroundColor: "hsl(var(--success))" }}
+                    />
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-[11px] text-muted-foreground">
+                    <span>Inputs: {totalCount}</span>
+                    <span style={{ color: "hsl(var(--success))" }}>+{coverageDelta}% projected</span>
+                  </div>
+                </div>
+
+                <div className="space-y-3 flex-1">
+                  {kpis.map((k) => (
+                    <div key={k.category}>
+                      <div className="flex items-center justify-between gap-3 mb-1">
+                        <span className="text-xs font-medium text-foreground">{k.label}</span>
+                        <span className="text-xs text-muted-foreground">{k.current} → {k.projected}</span>
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full bg-muted-foreground/30" style={{ width: `${Math.max(3, k.current)}%` }} />
+                      </div>
+                      <div className="h-2 rounded-full bg-muted overflow-hidden mt-1">
+                        <div
+                          className="h-full"
+                          style={{ width: `${Math.max(3, k.projected)}%`, backgroundColor: `hsl(var(--${k.color}))` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
           <p className="text-muted-foreground mb-6">
             With OpenBox, your score could improve to:
           </p>
-          <div className="flex items-center gap-6 flex-wrap">
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">Current</p>
-              <span className={`text-3xl font-bold text-${risk.color}`}>{score}</span>
+          <div className="flex items-center justify-center gap-6 flex-wrap">
+            <div className="rounded-xl border border-border bg-background px-6 py-4 min-w-[160px]">
+              <p className="text-xs font-medium text-muted-foreground">Current</p>
+              <div className="mt-1">
+                <span className={`text-5xl font-bold text-${risk.color}`}>{score}</span>
+                <span className="text-sm text-muted-foreground ml-1">/100</span>
+              </div>
             </div>
-            <ArrowRight className="w-6 h-6 text-muted-foreground" />
-            <div className="text-center">
-              <p className="text-sm text-muted-foreground mb-1">With OpenBox</p>
-              <span className="text-3xl font-bold text-success">{improvedScore}</span>
+            <ArrowRight className="w-8 h-8 text-muted-foreground" />
+            <div className="rounded-xl border border-border bg-background px-6 py-4 min-w-[160px]">
+              <p className="text-xs font-medium text-muted-foreground">With OpenBox</p>
+              <div className="mt-1">
+                <span className="text-5xl font-bold" style={{ color: "hsl(var(--success))" }}>
+                  {improvedScore}
+                </span>
+                <span className="text-sm text-muted-foreground ml-1">/100</span>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -187,15 +463,15 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.9 }}
-          className="glass-card rounded-2xl p-8 text-center mb-16"
+          className="bg-card border border-border rounded-2xl p-8 text-center mb-16"
         >
           <Shield className="w-12 h-12 text-primary mx-auto mb-4" />
           <h3 className="text-2xl font-bold text-foreground mb-2">Secure Your AI Systems</h3>
-          <p className="text-muted-foreground mb-6 max-w-lg mx-auto">
-            Don't leave your AI agents vulnerable. Get enterprise-grade protection with OpenBox.
+          <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
+            Protect your AI agents with OpenBox.
           </p>
-          <div className="flex flex-wrap justify-center gap-4">
-            <Button variant="hero" size="xl" asChild>
+          <div className="grid w-full max-w-2xl mx-auto gap-3 sm:grid-cols-2">
+            <Button variant="hero" size="xl" className="w-full min-h-[56px]" asChild>
               <a
                 href="https://docs.openbox.ai"
                 target="_blank"
@@ -204,7 +480,7 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
                 Secure Your AI with OpenBox
               </a>
             </Button>
-            <Button variant="hero-outline" size="xl" asChild>
+            <Button variant="hero-outline" size="xl" className="w-full min-h-[56px]" asChild>
               <a
                 href="https://calendly.com/openbox-ai/30min?month=2026-04"
                 target="_blank"
@@ -214,38 +490,6 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
               </a>
             </Button>
           </div>
-        </motion.div>
-
-        {/* Educational Section */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          className="grid md:grid-cols-3 gap-6 mb-16"
-        >
-          {[
-            {
-              icon: Scale,
-              title: "What is AI Governance?",
-              desc: "AI governance ensures your systems operate within ethical, legal, and organizational boundaries.",
-            },
-            {
-              icon: AlertCircle,
-              title: "Why AI Agents Fail",
-              desc: "Without proper safeguards, AI agents can produce harmful outputs, make unauthorized decisions, or leak data.",
-            },
-            {
-              icon: BookOpen,
-              title: "Common AI Risks",
-              desc: "Prompt injection, hallucination, bias amplification, and lack of oversight are the top risks facing AI today.",
-            },
-          ].map((item) => (
-            <div key={item.title} className="glass-card rounded-2xl p-6">
-              <item.icon className="w-8 h-8 text-primary mb-4" />
-              <h4 className="font-semibold text-foreground mb-2">{item.title}</h4>
-              <p className="text-sm text-muted-foreground">{item.desc}</p>
-            </div>
-          ))}
         </motion.div>
 
         {/* Footer */}

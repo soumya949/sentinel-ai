@@ -5,35 +5,20 @@ export interface AuditQuestion {
 }
 
 export const quickQuestions: AuditQuestion[] = [
-  { id: 1, question: "Does your AI agent have defined input validation rules?", category: "Input Risk" },
-  { id: 2, question: "Are outputs verified before being sent to end users?", category: "Output Risk" },
-  { id: 3, question: "Is there a human-in-the-loop for critical decisions?", category: "Control Risk" },
-  { id: 4, question: "Do you have real-time monitoring for AI behavior?", category: "Monitoring" },
-  { id: 5, question: "Are AI actions logged and auditable?", category: "Governance" },
-  { id: 6, question: "Is there a rollback mechanism for AI decisions?", category: "Control Risk" },
-  { id: 7, question: "Does your AI have rate limiting on actions?", category: "Input Risk" },
-  { id: 8, question: "Are edge cases tested in your AI pipeline?", category: "Output Risk" },
-  { id: 9, question: "Do you have an incident response plan for AI failures?", category: "Governance" },
-  { id: 10, question: "Is your AI compliant with relevant regulations?", category: "Governance" },
+  { id: 1, question: "Are you currently using AI in your workflows or products?", category: "Entry Intent" },
+  { id: 2, question: "Are you planning to use AI in the near future?", category: "Entry Intent" },
+  { id: 3, question: "Do you validate or sanitize user inputs before processing?", category: "Input Risk" },
+  { id: 4, question: "Does your agent verify outputs against a trusted source (RAG, DB, validation)?", category: "Output Risk" },
+  { id: 5, question: "Can your system detect or flag hallucinated or incorrect outputs?", category: "Output Risk" },
+  { id: 6, question: "Do you control what actions your agent can perform (write, delete, execute)?", category: "Control Risk" },
+  { id: 7, question: "Can your agent execute actions without human approval?", category: "Control Risk" },
+  { id: 8, question: "Can you track every decision or action your agent takes?", category: "Monitoring" },
+  { id: 9, question: "Do you log inputs, outputs, and actions of your agent?", category: "Monitoring" },
+  { id: 10, question: "Do you have safeguards against harmful, biased, or unsafe outputs?", category: "Governance" },
+  { id: 11, question: "Can you explain or verify how a specific output was generated?", category: "Governance" },
 ];
 
-export const advancedQuestions: AuditQuestion[] = [
-  { id: 11, question: "Does your AI system detect and handle adversarial inputs?", category: "Input Risk" },
-  { id: 12, question: "Are there automated tests for AI output quality?", category: "Output Risk" },
-  { id: 13, question: "Is there multi-level approval for high-risk AI actions?", category: "Control Risk" },
-  { id: 14, question: "Do you track model drift over time?", category: "Monitoring" },
-  { id: 15, question: "Are AI decisions explainable to stakeholders?", category: "Governance" },
-  { id: 16, question: "Is there a data provenance trail for training data?", category: "Input Risk" },
-  { id: 17, question: "Are outputs checked for bias and fairness?", category: "Output Risk" },
-  { id: 18, question: "Do you have sandboxed environments for AI testing?", category: "Control Risk" },
-  { id: 19, question: "Are system health metrics monitored in real-time?", category: "Monitoring" },
-  { id: 20, question: "Is there a formal AI ethics review process?", category: "Governance" },
-  { id: 21, question: "Does your system handle graceful degradation?", category: "Control Risk" },
-  { id: 22, question: "Are third-party AI components audited?", category: "Input Risk" },
-  { id: 23, question: "Do you have SLAs for AI response accuracy?", category: "Output Risk" },
-  { id: 24, question: "Is there continuous security scanning on AI endpoints?", category: "Monitoring" },
-  { id: 25, question: "Do you conduct regular AI risk assessments?", category: "Governance" },
-];
+export const advancedQuestions: AuditQuestion[] = [];
 
 export type Answer = "yes" | "no" | "partially";
 

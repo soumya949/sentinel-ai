@@ -18,31 +18,72 @@ const AuditQuiz = ({ questions, title, subtitle, startIndex, totalQuestions, onC
   const [answers, setAnswers] = useState<Record<number, Answer>>({});
 
   const question = questions[currentQ];
-  const progress = ((startIndex + currentQ) / totalQuestions) * 100;
-  const options: { value: Answer; label: string }[] = [
-    { value: "yes", label: "Yes" },
-    { value: "no", label: "No" },
-    { value: "partially", label: "Partially" },
-  ];
+  const visibleQuestions = answers[1] === "yes"
+    ? questions.filter((q) => q.id !== 2)
+    : questions;
+  const currentVisibleIndex = Math.max(0, visibleQuestions.findIndex((q) => q.id === question.id));
+  const progress = ((startIndex + currentVisibleIndex) / totalQuestions) * 100;
+  const options: { value: Answer; label: string }[] = question.id <= 2
+    ? [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+      ]
+    : [
+        { value: "yes", label: "Yes" },
+        { value: "no", label: "No" },
+        { value: "partially", label: "Partially" },
+      ];
+
+  const getNextIndex = (index: number, updatedAnswers: Record<number, Answer>) => {
+    if (index >= questions.length - 1) return index;
+    const current = questions[index];
+
+    if (current.id === 1 && updatedAnswers[1] === "yes") {
+      return Math.min(index + 2, questions.length - 1);
+    }
+
+    return Math.min(index + 1, questions.length - 1);
+  };
+
+  const getPreviousIndex = (index: number, updatedAnswers: Record<number, Answer>) => {
+    if (index <= 0) return 0;
+    const current = questions[index];
+
+    if (current.id === 3 && updatedAnswers[1] === "yes") {
+      return 0;
+    }
+
+    return index - 1;
+  };
 
   const handleAnswer = (answer: Answer) => {
     const updated = { ...answers, [question.id]: answer };
     setAnswers(updated);
 
+    if (question.id === 2 && updated[1] === "no" && answer === "no") {
+      onComplete(updated);
+      return;
+    }
+
     if (currentQ < questions.length - 1) {
-      setTimeout(() => setCurrentQ((p) => p + 1), 300);
+      const nextIndex = getNextIndex(currentQ, updated);
+      if (nextIndex !== currentQ) {
+        setTimeout(() => setCurrentQ(nextIndex), 300);
+      }
     }
   };
 
-  const canFinish = Object.keys(answers).length === questions.length;
+  const requiredQuestionIds = visibleQuestions.map((q) => q.id);
+  const canFinish = requiredQuestionIds.every((id) => Boolean(answers[id]));
+  const isLastQuestion = getNextIndex(currentQ, answers) === currentQ;
 
   return (
-    <section className="py-20 gradient-hero min-h-[80vh] flex items-center">
+    <section className="py-20 bg-background min-h-[80vh] flex items-center">
       <div className="container mx-auto px-6 max-w-2xl">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="glass-card rounded-2xl p-8 shadow-2xl"
+          className="bg-card border border-border rounded-2xl p-8 shadow-lg"
         >
           {/* Logo */}
           <div className="flex justify-center mb-6">
@@ -60,13 +101,13 @@ const AuditQuiz = ({ questions, title, subtitle, startIndex, totalQuestions, onC
           {/* Progress */}
           <div className="mb-8">
             <div className="flex justify-between text-sm text-muted-foreground mb-2">
-              <span>Question {startIndex + currentQ + 1}</span>
-              <span>{startIndex + currentQ + 1}/{totalQuestions}</span>
+              <span>Question {startIndex + currentVisibleIndex + 1}</span>
+              <span>{startIndex + currentVisibleIndex + 1}/{totalQuestions}</span>
             </div>
             <div className="h-2 bg-muted rounded-full overflow-hidden">
               <motion.div
-                className="h-full gradient-primary rounded-full"
-                animate={{ width: `${progress}%` }}
+                className="h-full bg-primary rounded-full"
+                animate={{ width: `${Math.min(100, progress)}%` }}
                 transition={{ duration: 0.3 }}
               />
             </div>
@@ -97,10 +138,10 @@ const AuditQuiz = ({ questions, title, subtitle, startIndex, totalQuestions, onC
                     <button
                       key={opt.value}
                       onClick={() => handleAnswer(opt.value)}
-                      className={`w-full flex items-center gap-3 p-4 rounded-xl border transition-all duration-200 text-left ${
+                      className={`w-full flex items-center gap-3 p-4 rounded-lg border transition-all duration-200 text-left ${
                         selected
-                          ? "border-primary bg-primary/5 shadow-sm"
-                          : "border-border hover:border-primary/30 hover:bg-muted/50"
+                          ? "border-primary bg-primary/10 shadow-md"
+                          : "border-border bg-muted/20 hover:border-primary/50 hover:bg-muted/50"
                       }`}
                     >
                       {selected ? (
@@ -122,15 +163,15 @@ const AuditQuiz = ({ questions, title, subtitle, startIndex, totalQuestions, onC
           <div className="flex justify-between mt-8">
             <Button
               variant="ghost"
-              onClick={() => setCurrentQ((p) => Math.max(0, p - 1))}
+              onClick={() => setCurrentQ((p) => getPreviousIndex(p, answers))}
               disabled={currentQ === 0}
             >
               Back
             </Button>
-            {currentQ < questions.length - 1 ? (
+            {!isLastQuestion ? (
               <Button
                 variant="default"
-                onClick={() => setCurrentQ((p) => p + 1)}
+                onClick={() => setCurrentQ((p) => getNextIndex(p, answers))}
                 disabled={!answers[question.id]}
               >
                 Next <ChevronRight className="w-4 h-4" />

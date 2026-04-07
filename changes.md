@@ -2,7 +2,7 @@ one different link to redirect that is https://www.openbox.ai/ai-audit
 
 
 
-landing page is not required directly redirect to the ai audit page (i.e questions)
+landing page is not required directly redirect to the ai audit page (i.e questions) ✓
 
 
 
@@ -23,9 +23,13 @@ from book free demo button it should go to this link: https://calendly.com/openb
 ## Problem facing 
     page starting in 231ms can be reduced
 
-    fast click issue.
+    fast click issue. ✓
 
 ## additional requirements
-- changing from 25 question to 10 question
-- after changing to 10 questions we will show the full result after the email is provided then redirect to the result page.
-- change all the lovable stuffs to open box stuffs
+- changing from 25 question to 10 question ✓
+- after changing to 10 questions conditions for first 2 qustions must be made ✓
+- change all the lovable stuffs to open box stuffs ✓
+
+UI copy from openbox.ai ✓
+view basic report page - improvement simulation show different charts to educate user ✓
+view basic report - remove texts under CTa buttons ✓
