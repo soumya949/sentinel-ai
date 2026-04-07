@@ -23,8 +23,10 @@ const HeroSection = ({ onStartAudit }: { onStartAudit: () => void }) => {
             <Button variant="hero" size="xl" onClick={onStartAudit}>
               Start Free Audit
             </Button>
-            <Button variant="hero-outline" size="xl">
-              Learn More
+            <Button variant="hero-outline" size="xl" asChild>
+              <a href="https://www.openbox.ai/about" target="_blank" rel="noopener noreferrer">
+                Learn More
+              </a>
             </Button>
           </div>
         </motion.div>
