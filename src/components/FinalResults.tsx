@@ -22,32 +22,20 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
   const risk = getRiskLevel(score);
   const categories = getCategoryScores(answers, questions);
   const improvedScore = Math.min(100, score + 23);
+  const scoreDelta = Math.max(0, improvedScore - score);
 
-  const colorMap: Record<string, string> = {
-    "Input Risk": "primary",
-    "Output Risk": "warning",
-    "Control Risk": "risk",
-    "Monitoring": "accent",
-    "Governance": "secondary",
-  };
-
-  const projectScore = (current: number) => {
+  const projectCategoryScore = (current: number) => {
     const gap = 100 - current;
-    const boost = Math.min(35, Math.max(12, Math.round(gap * 0.5)));
+    const boost = Math.min(35, Math.max(10, Math.round(gap * 0.45)));
     return Math.min(100, current + boost);
   };
 
-  const getCategoryScore = (name: string) => categories.find((c) => c.name === name)?.score ?? score;
-  const kpis = [
-    { label: "Input hardening", category: "Input Risk" },
-    { label: "Output reliability", category: "Output Risk" },
-    { label: "Action control", category: "Control Risk" },
-  ].map((k) => {
-    const current = getCategoryScore(k.category);
-    const projected = projectScore(current);
-    const color = colorMap[k.category] ?? "primary";
-    return { ...k, current, projected, color };
-  });
+  const projectedCategories = [...categories]
+    .map((c) => {
+      const projected = projectCategoryScore(c.score);
+      return { ...c, projected, delta: Math.max(0, projected - c.score) };
+    })
+    .sort((a, b) => b.delta - a.delta);
 
   const criticalIssues = [
     categories.find((c) => c.name === "Monitoring" && c.score < 60) && "No real-time monitoring detected",
@@ -202,81 +190,43 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
           <p className="text-sm text-muted-foreground mb-6">
             Focus on your overall score first, then drill into the biggest improvement areas.
           </p>
-          <div className="grid gap-6 md:grid-cols-2 items-start">
-            <div className="rounded-xl border border-border bg-background p-5">
-              <div className="flex items-end justify-between gap-6 mb-4">
+          <div className="rounded-xl border border-border bg-background p-5 max-w-3xl mx-auto">
+            <div className="mb-5">
+              <p className="text-xs font-medium text-muted-foreground">Overall score</p>
+              <div className="mt-2 grid gap-3 sm:grid-cols-3 items-end">
                 <div>
-                  <p className="text-xs font-medium text-muted-foreground">Current score</p>
-                  <div className="mt-1 flex items-end gap-2">
-                    <span className={`text-4xl font-bold text-${risk.color}`}>{score}</span>
-                    <span className="text-sm text-muted-foreground mb-1">/100</span>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <p className="text-xs font-medium text-muted-foreground">With OpenBox</p>
-                  <div className="mt-1 flex items-end gap-2 justify-end">
-                    <span className="text-4xl font-bold" style={{ color: "hsl(var(--success))" }}>
-                      {improvedScore}
-                    </span>
-                    <span className="text-sm text-muted-foreground mb-1">/100</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>Current</span>
-                    <span>{score}</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-muted overflow-hidden">
-                    <div className={`h-full bg-${risk.color}`} style={{ width: `${Math.max(2, score)}%` }} />
-                  </div>
+                  <p className="text-xs text-muted-foreground">Without OpenBox</p>
+                  <p className={`text-4xl font-bold text-${risk.color}`}>{score}</p>
                 </div>
                 <div>
-                  <div className="flex items-center justify-between text-xs text-muted-foreground mb-1">
-                    <span>With OpenBox</span>
-                    <span>{improvedScore}</span>
-                  </div>
-                  <div className="h-3 rounded-full bg-muted overflow-hidden">
-                    <div className="h-full" style={{ width: `${Math.max(2, improvedScore)}%`, backgroundColor: "hsl(var(--success))" }} />
-                  </div>
+                  <p className="text-xs text-muted-foreground">With OpenBox</p>
+                  <p className="text-4xl font-bold" style={{ color: "hsl(var(--success))" }}>{improvedScore}</p>
+                </div>
+                <div className="sm:text-right">
+                  <p className="text-xs text-muted-foreground">Difference</p>
+                  <p className="text-2xl font-semibold" style={{ color: "hsl(var(--success))" }}>+{scoreDelta}</p>
                 </div>
               </div>
             </div>
 
-            <div className="rounded-xl border border-border bg-background overflow-hidden">
-              <div className="px-5 py-4 border-b border-border">
-                <p className="text-sm font-semibold text-foreground">Projected improvements by area</p>
+            <div className="border-t border-border pt-4">
+              <div className="grid grid-cols-4 gap-3 text-xs font-medium text-muted-foreground mb-3">
+                <span>Area</span>
+                <span className="text-right">Without OpenBox</span>
+                <span className="text-right">With OpenBox</span>
+                <span className="text-right">Difference</span>
               </div>
-              <div className="p-5">
-                <div className="grid grid-cols-3 gap-3 text-xs font-medium text-muted-foreground mb-3">
-                  <span>Area</span>
-                  <span className="text-right">Current</span>
-                  <span className="text-right">With OpenBox</span>
-                </div>
-                <div className="space-y-5">
-                  {kpis.map((k) => (
-                    <div key={k.category}>
-                      <div className="grid grid-cols-3 gap-3 items-center">
-                        <span className="text-sm font-medium text-foreground">{k.label}</span>
-                        <span className="text-sm text-muted-foreground text-right">{k.current}</span>
-                        <span className="text-sm text-muted-foreground text-right">{k.projected}</span>
-                      </div>
-                      <div className="mt-2">
-                        <div className="h-2 rounded-full bg-muted overflow-hidden">
-                          <div className="h-full bg-muted-foreground/30" style={{ width: `${Math.max(3, k.current)}%` }} />
-                        </div>
-                        <div className="h-2 rounded-full bg-muted overflow-hidden mt-1">
-                          <div
-                            className="h-full"
-                            style={{ width: `${Math.max(3, k.projected)}%`, backgroundColor: `hsl(var(--${k.color}))` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="space-y-2">
+                {projectedCategories.map((c) => (
+                  <div key={c.name} className="grid grid-cols-4 gap-3 items-center">
+                    <span className="text-sm font-medium text-foreground">{c.name}</span>
+                    <span className="text-sm text-muted-foreground text-right">{c.score}</span>
+                    <span className="text-sm text-muted-foreground text-right">{c.projected}</span>
+                    <span className="text-sm font-semibold text-right" style={{ color: "hsl(var(--success))" }}>
+                      +{c.delta}
+                    </span>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -294,23 +244,23 @@ const FinalResults = ({ answers, isBasicOnly }: FinalResultsProps) => {
           <p className="text-sm text-muted-foreground mb-6 max-w-md mx-auto">
             Protect your AI agents with OpenBox.
           </p>
-          <div className="grid w-full max-w-2xl mx-auto gap-3 sm:grid-cols-2">
-            <Button variant="hero" size="xl" className="w-full min-h-[56px]" asChild>
+          <div className="flex flex-col sm:flex-row justify-center gap-2 w-full max-w-md mx-auto">
+            <Button variant="hero" size="default" className="px-5" asChild>
               <a
                 href="https://docs.openbox.ai"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Secure Your AI with OpenBox
+                Secure Your AI
               </a>
             </Button>
-            <Button variant="hero-outline" size="xl" className="w-full min-h-[56px]" asChild>
+            <Button variant="hero-outline" size="default" className="px-5" asChild>
               <a
                 href="https://calendly.com/openbox-ai/30min?month=2026-04"
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Book Free Demo
+                Book Demo
               </a>
             </Button>
           </div>
