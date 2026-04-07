@@ -31,7 +31,7 @@ const Index = () => {
       return;
     }
 
-    setPhase("partial-results");
+    setPhase("final-results");
     scrollToTop();
   };
 

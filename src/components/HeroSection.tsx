@@ -11,6 +11,13 @@ const HeroSection = ({ onStartAudit }: { onStartAudit: () => void }) => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7 }}
         >
+          <div className="inline-flex items-center gap-2 bg-primary/10 text-primary rounded-full px-4 py-1.5 text-sm font-medium mb-6">
+            <a href="https://www.openbox.ai" target="_blank" rel="noopener noreferrer" className="flex items-center">
+              <img src="/openbox-logo.svg" alt="OpenBox" className="h-5 mr-2" />
+            </a>
+            <Shield className="w-4 h-4" />
+            AI Safety & Governance Platform
+          </div>
           <h1 className="text-5xl lg:text-6xl font-bold text-foreground leading-tight mb-6">
             Test Your AI Agent for{" "}
             <span className="text-primary">Hidden Risks</span>
